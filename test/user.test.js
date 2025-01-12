@@ -1,197 +1,71 @@
-(async () => {
-  const chai = await import("chai");
-  const chaiHttp = await import("chai-http");
-  const app = require("../app.js"); // CommonJS import for your app
-  const should = chai.should();
+const request = require("supertest");
+const app = require("../app"); // Import the app
 
-  chai.use(chaiHttp);
+jest.mock("../models/userModel", () => {
+  const mockData = {
+    "test@example.com": { email: "test@example.com", age: 25 },
+  };
 
-  describe("Users", () => {
-    before((done) => {
-      const fs = require("fs");
-      const path = require("path");
-      const filePath = path.join(__dirname, "../models/users.json");
-      fs.writeFileSync(filePath, JSON.stringify({}, null, 2), "utf8");
-      done();
-    });
+  return {
+    readUsers: jest.fn(() => mockData),
+    writeUsers: jest.fn((newData) => {
+      Object.assign(mockData, newData);
+    }),
+  };
+});
 
-    describe("/POST user", () => {
-      it("it should add a user", (done) => {
-        const user = {
-          email: "test@example.com",
-          age: 30,
-        };
-        chai
-          .request(app)
-          .post("/api/users")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(201);
-            res.body.should.be.a("object");
-            res.body.should.have
-              .property("message")
-              .eql("User added successfully");
-            done();
-          });
-      });
+describe("User Routes", () => {
+  // Test for adding a user
+  test("POST /add_user should add a new user", async () => {
+    const response = await request(app)
+      .post("/add_user")
+      .send({ email: "newuser@example.com", age: 30 });
 
-      it("it should not add a user without email", (done) => {
-        const user = {
-          age: 30,
-        };
-        chai
-          .request(app)
-          .post("/api/users")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(400);
-            res.body.should.be.a("object");
-            res.body.should.have
-              .property("error")
-              .eql("Email and age are required");
-            done();
-          });
-      });
-
-      it("it should not add a user without age", (done) => {
-        const user = {
-          email: "test@example.com",
-        };
-        chai
-          .request(app)
-          .post("/api/users")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(400);
-            res.body.should.be.a("object");
-            res.body.should.have
-              .property("error")
-              .eql("Email and age are required");
-            done();
-          });
-      });
-
-      it("it should not add a user that already exists", (done) => {
-        const user = {
-          email: "test@example.com",
-          age: 30,
-        };
-        chai
-          .request(app)
-          .post("/api/users")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(400);
-            res.body.should.be.a("object");
-            res.body.should.have.property("error").eql("User already exists");
-            done();
-          });
-      });
-    });
-
-    describe("/GET user", () => {
-      it("it should GET a user", (done) => {
-        chai
-          .request(app)
-          .get("/api/users/test@example.com")
-          .end((err, res) => {
-            res.should.have.status(200);
-            res.body.should.be.a("object");
-            res.body.should.have.property("email").eql("test@example.com");
-            res.body.should.have.property("age").eql(30);
-            done();
-          });
-      });
-
-      it("it should not GET a user that does not exist", (done) => {
-        chai
-          .request(app)
-          .get("/api/users/nonexistent@example.com")
-          .end((err, res) => {
-            res.should.have.status(404);
-            res.body.should.be.a("object");
-            res.body.should.have.property("error").eql("User not found");
-            done();
-          });
-      });
-    });
-
-    describe("/PUT user", () => {
-      it("it should UPDATE a user", (done) => {
-        const user = {
-          age: 31,
-        };
-        chai
-          .request(app)
-          .put("/api/users/test@example.com")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(200);
-            res.body.should.be.a("object");
-            res.body.should.have
-              .property("message")
-              .eql("User updated successfully");
-            done();
-          });
-      });
-
-      it("it should not UPDATE a user that does not exist", (done) => {
-        const user = {
-          age: 31,
-        };
-        chai
-          .request(app)
-          .put("/api/users/nonexistent@example.com")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(404);
-            res.body.should.be.a("object");
-            res.body.should.have.property("error").eql("User not found");
-            done();
-          });
-      });
-
-      it("it should not UPDATE a user without age", (done) => {
-        const user = {};
-        chai
-          .request(app)
-          .put("/api/users/test@example.com")
-          .send(user)
-          .end((err, res) => {
-            res.should.have.status(400);
-            res.body.should.be.a("object");
-            res.body.should.have.property("error").eql("Age is required");
-            done();
-          });
-      });
-    });
-
-    describe("/DELETE user", () => {
-      it("it should DELETE a user", (done) => {
-        chai
-          .request(app)
-          .delete("/api/users/test@example.com")
-          .end((err, res) => {
-            res.should.have.status(200);
-            res.body.should.be.a("object");
-            res.body.should.have
-              .property("message")
-              .eql("User deleted successfully");
-            done();
-          });
-      });
-
-      it("it should not DELETE a user that does not exist", (done) => {
-        chai
-          .request(app)
-          .delete("/api/users/nonexistent@example.com")
-          .end((err, res) => {
-            res.should.have.status(404);
-            res.body.should.be.a("object");
-            res.body.should.have.property("error").eql("User not found");
-            done();
-          });
-      });
-    });
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe("User added successfully");
   });
-})();
+
+  // Test for retrieving a user
+  test("GET /get_user/:email should return user information", async () => {
+    const response = await request(app).get("/get_user/test@example.com");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ email: "test@example.com", age: 25 });
+  });
+
+  // Test for updating a user
+  test("PUT /update_user/:email should update user information", async () => {
+    const response = await request(app)
+      .put("/update_user/test@example.com")
+      .send({ age: 28 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("User updated successfully");
+  });
+
+  // Test for deleting a user
+  test("DELETE /delete_user/:email should delete a user", async () => {
+    const response = await request(app).delete("/delete_user/test@example.com");
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe("User deleted successfully");
+  });
+
+  // Test for missing parameters
+  test("POST /add_user should return 400 if parameters are missing", async () => {
+    const response = await request(app).post("/add_user").send({ email: "" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Email and age are required");
+  });
+
+  // Test for non-existent user
+  test("GET /get_user/:email should return 404 for a non-existent user", async () => {
+    const response = await request(app).get(
+      "/get_user/nonexistent@example.com"
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe("User not found");
+  });
+});

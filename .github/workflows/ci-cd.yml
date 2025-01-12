@@ -1,31 +1,39 @@
-name: CI/CD Pipeline
+name: Node.js CI/CD Pipeline
 
-# Triggers for the workflow
 on:
   push:
     branches:
-      - main  # Run on push to the main branch
+      - main
   pull_request:
     branches:
-      - main  # Run on pull requests to the main branch
+      - main
   schedule:
-    - cron: '0 0 * * *'  # Runs at midnight UTC every day
+    - cron: '0 0 * * *' # Nightly at midnight UTC
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+  build-and-test:
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2  # Checkout the repository code
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'  # Specify the Node.js version
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    - name: Install dependencies
-      run: npm install
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # - name: Run tests
-    #   run: npm test
+      # Run linting with ESLint or flake8 equivalent
+      - name: Lint the code
+        run: npm run lint
+
+      # Run tests
+      - name: Run tests
+        run: npm test
+
