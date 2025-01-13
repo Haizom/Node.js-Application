@@ -6,12 +6,15 @@
   "scripts": {
     "lint": "eslint .",
     "start": "node app.js",
-    "test": "jest"
+    "test": "jest --forceExit"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "devDependencies": {
     "chai": "^5.1.2",
@@ -23,3 +26,4 @@
     "supertest": "^7.0.0"
   }
 }
+
